@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>Finapack Product Catalogue - Live</title>
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700;800&display=swap');
+    @page { size: A4 portrait; margin: 0; }
+    body { font-family: 'Outfit', sans-serif; color: #1a1a1a; margin: 0; padding: 0; background-color: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .logo-top-right { position: absolute; top: 10mm; right: 10mm; width: 25mm; z-index: 100; }
+    .product-page { width: 210mm; height: 297mm; page-break-after: always; position: relative; box-sizing: border-box; padding: 35mm 15mm 25mm 15mm; background-color: #fafafa; background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320"><path fill="%23ea384d" fill-opacity="0.2" d="M0,256L1440,128L1440,320L0,320Z"></path><path fill="%23d31027" fill-opacity="0.8" d="M0,288L1440,224L1440,320L0,320Z"></path></svg>'); background-position: bottom; background-repeat: no-repeat; background-size: 100% auto; }
+    .products-tab { position: absolute; top: 15mm; left: 0; background: linear-gradient(90deg, #d31027 0%, #ea384d 100%); color: white; font-size: 18px; font-weight: 800; padding: 10px 25px 10px 15px; border-top-right-radius: 30px; border-bottom-right-radius: 30px; box-shadow: 0 4px 15px rgba(211, 16, 39, 0.3); }
+    
+    .content-container { display: flex; flex-direction: column; gap: 8px; height: 100%; align-content: start; margin-top: 5px; }
+    .category-header { background: linear-gradient(90deg, #d31027 0%, #ea384d 100%); color: white; font-size: 14px; font-weight: 800; padding: 4px 12px; border-radius: 6px; display: flex; align-items: center; height: 26px; box-sizing: border-box; margin-bottom: 4px; text-transform: uppercase; }
+    
+    .list-view-block { display: flex; flex-direction: row; background: white; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.03); padding: 10px; gap: 10px; box-sizing: border-box; break-inside: avoid; margin-bottom: 8px; }
+    .list-view-image-container { flex: 0 0 130px; display: flex; align-items: center; justify-content: center; background: #fff; border-radius: 8px; padding: 5px; }
+    .list-view-image { max-width: 100%; max-height: 90px; object-fit: contain; }
+    .list-view-items { flex: 1; display: flex; flex-direction: column; gap: 3px; justify-content: center; }
+    
+    .list-item-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 8px; border-bottom: 1px solid #f0f0f0; }
+    .list-item-row:last-child { border-bottom: none; }
+    .item-desc { font-weight: 500; font-size: 10px; color: #1a1a1a; flex-grow: 1; padding: 0 8px; line-height: 1.1; white-space: pre-line; }
+    .item-price { font-weight: 700; font-size: 11px; color: #333; background: #fff0f0; padding: 2px 6px; border-radius: 4px; white-space: pre-line; line-height: 1.1; text-align: right; }
+    
+</style>
+</head>
+<body>
+
+{% for page in pages %}
+<div class="product-page">
+    <img alt="Finapack Logo" class="logo-top-right" src="{{ url_for('static', filename='finapacklogo.png') }}" onerror="this.src='../finapacklogo.png'" />
+    <div class="products-tab">Product Catalog</div>
+    <div class="content-container">
+        {% for item in page %}
+            {% if item.type == 'header' %}
+                <div class="category-header">{{ item.text }}</div>
+            {% else %}
+                <div class="list-view-block">
+                    <div class="list-view-image-container">
+                        <!-- We map local static paths safely, or relative paths as they were in HTML -->
+                        <img class="list-view-image" src="../{{ item.block.image_path }}" />
+                    </div>
+                    <div class="list-view-items">
+                        {% for prod in item.block.items %}
+                        <div class="list-item-row">
+                            <div class="item-desc">{{ prod.name }}</div>
+                            <div class="item-price">{{ prod.price | safe }}</div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+        {% endfor %}
+    </div>
+</div>
+{% endfor %}
+
+</body>
+</html>

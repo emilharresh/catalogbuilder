@@ -1,0 +1,34 @@
+# Python virtual environment
+.venv/
+venv/
+ENV/
+env/
+
+# Python bytecode & cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+
+# PyInstaller build outputs and distribution
+build/
+dist/
+*.spec.bak
+
+# Deploy archives & temporary zip files
+*.zip
+
+# Operating System artifacts
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE & Editor folders
+.vscode/
+.idea/
+
+# Local logs
+*.log
+
+# Legacy duplicate / backup folders
+new_catalog_system/

@@ -1,0 +1,1859 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <title>Finapack WYSIWYG Builder</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700;800&display=swap');
+
+        @page {
+            size: A4 portrait;
+            margin: 0mm;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            color: #1a1a1a;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f0f0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .print-hide {
+            display: block;
+        }
+
+        @media print {
+
+            .print-hide, .toolbar, #glass-modal-overlay, #glass-confirm-overlay, #toast {
+                display: none !important;
+            }
+
+            body {
+                display: block !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                background-color: #fff !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+            .page-wrapper {
+                display: block !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                border: none !important;
+                box-shadow: none !important;
+                page-break-after: always !important;
+                break-after: page !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
+            .page-wrapper:last-of-type {
+                page-break-after: auto !important;
+                break-after: auto !important;
+            }
+            
+            .product-page {
+                width: 210mm !important;
+                height: 296mm !important;
+                max-height: 296mm !important;
+                margin: 0 !important;
+                padding: 35mm 15mm 25mm 15mm !important;
+                page-break-after: avoid !important;
+                break-after: avoid !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+                overflow: hidden !important;
+                position: relative !important;
+                box-sizing: border-box !important;
+                background-repeat: no-repeat !important;
+                background-position: bottom left !important;
+                background-size: 100% auto !important;
+            }
+
+            .cover-wrapper .product-page, .toc-wrapper .product-page {
+                padding: 15mm 15mm 15mm 15mm !important;
+                height: 296mm !important;
+                max-height: 296mm !important;
+                box-sizing: border-box !important;
+            }
+            .pdf-toc-item {
+                border: 1px solid #e5e5ea !important;
+                background: #f9f9fb !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            a[href^="#cat-"] {
+                text-decoration: none !important;
+                color: #1d1d1f !important;
+            }
+        }
+
+        /* Cover Page & TOC Page Screen Styles */
+        .pdf-toc-item:hover {
+            background: #f0f0f5 !important;
+            border-color: #0071e3 !important;
+            transform: translateY(-1px);
+        }
+
+        .page-wrapper {
+            margin-bottom: 30px;
+            box-shadow: 0px 5px 20px rgba(0, 0, 0, 0.2);
+            position: relative;
+        }
+
+        .product-page {
+            width: 210mm;
+            height: 297mm;
+            page-break-after: always;
+            position: relative;
+            box-sizing: border-box;
+            padding: 35mm 15mm 25mm 15mm;
+            background-color: #fafafa;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320"><path fill="%23ea384d" fill-opacity="0.2" d="M0,256L1440,128L1440,320L0,320Z"></path><path fill="%23d31027" fill-opacity="0.8" d="M0,288L1440,224L1440,320L0,320Z"></path></svg>');
+            background-position: bottom;
+            background-repeat: no-repeat;
+            background-size: 100% auto;
+            overflow: hidden;
+        }
+
+        .products-tab {
+            position: absolute;
+            top: 15mm;
+            left: 0;
+            background: linear-gradient(90deg, #d31027 0%, #ea384d 100%);
+            color: white;
+            font-size: 18px;
+            font-weight: 800;
+            padding: 10px 25px 10px 15px;
+            border-top-right-radius: 30px;
+            border-bottom-right-radius: 30px;
+        }
+
+        .logo-top-right {
+            position: absolute;
+            top: 10mm;
+            right: 10mm;
+            width: 25mm;
+            z-index: 100;
+        }
+
+        .content-container {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            height: 100%;
+            align-content: start;
+            margin-top: 5px;
+            transition: opacity 0.4s cubic-bezier(0.25, 1, 0.5, 1), transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+
+        .category-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 4px;
+        }
+
+        .category-header {
+            background: linear-gradient(90deg, #d31027 0%, #ea384d 100%);
+            color: white;
+            font-size: 14px;
+            font-weight: 800;
+            padding: 4px 12px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            height: 26px;
+            box-sizing: border-box;
+            text-transform: uppercase;
+            cursor: text;
+            margin-bottom: 0;
+        }
+
+        .category-header:hover {
+            opacity: 0.9;
+        }
+
+        .list-view-block {
+            display: flex;
+            flex-direction: row;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.03);
+            padding: 10px;
+            gap: 10px;
+            box-sizing: border-box;
+            break-inside: avoid;
+            margin-bottom: 8px;
+            position: relative;
+        }
+
+        .list-view-image-container {
+            flex: 0 0 130px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #fff;
+            border-radius: 8px;
+            padding: 5px;
+            cursor: pointer;
+            border: 2px dashed transparent;
+            transition: border 0.2s;
+            position: relative;
+        }
+
+        .list-view-image-container:hover {
+            border: 2px dashed #d31027;
+        }
+
+        .list-view-image-container:hover::after {
+            content: "Click to change image";
+            position: absolute;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            font-size: 10px;
+            padding: 4px;
+            border-radius: 4px;
+            pointer-events: none;
+        }
+
+        .image-resize-controls {
+            position: absolute;
+            bottom: 6px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 4px;
+            background: rgba(0, 0, 0, 0.65);
+            backdrop-filter: blur(5px);
+            border-radius: 12px;
+            padding: 3px 6px;
+            opacity: 0;
+            transition: opacity 0.2s;
+            pointer-events: auto;
+            z-index: 10;
+        }
+        .list-view-image-container:hover .image-resize-controls,
+        .grid-image-container:hover .image-resize-controls {
+            opacity: 1;
+        }
+        .btn-resize {
+            width: 20px;
+            height: 20px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+            border: none;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+            transition: background 0.2s, transform 0.1s;
+        }
+        .btn-resize:hover {
+            background: white;
+            transform: scale(1.1);
+        }
+
+        .list-view-image {
+            max-width: 100%;
+            max-height: 90px;
+            object-fit: contain;
+        }
+
+        .list-view-block.is-bulk .list-view-image {
+            max-height: 100%;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Layout overrides for Bulk/Single Images */
+        .list-view-block.layout-top {
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+        .list-view-block.layout-top .list-view-image-container {
+            flex: 0 0 auto;
+            width: 100%;
+            height: 150px;
+        }
+        .list-view-block.layout-top .list-view-image {
+            max-height: 100%;
+        }
+        .list-view-block.layout-top .list-view-items {
+            width: 100%;
+        }
+
+        .list-view-block.layout-right {
+            flex-direction: row-reverse;
+        }
+        .list-view-block.layout-right .list-view-image-container {
+            flex: 0 0 160px;
+            height: 160px;
+        }
+        .list-view-block.layout-right .list-view-image {
+            max-height: 100%;
+        }
+
+        .list-view-items {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            justify-content: center;
+            position: relative;
+        }
+
+        .list-item-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 4px 8px;
+            border-bottom: 1px solid #f0f0f0;
+            position: relative;
+        }
+
+        .list-item-row:last-child {
+            border-bottom: none;
+        }
+
+        .item-desc {
+            font-weight: 500;
+            font-size: 10px;
+            color: #1a1a1a;
+            flex-grow: 1;
+            padding: 0 8px;
+            line-height: 1.1;
+            white-space: pre-wrap;
+            cursor: text;
+            border: 1px dashed transparent;
+        }
+
+        .item-price {
+            font-weight: 700;
+            font-size: 11px;
+            color: #333;
+            background: #fff0f0;
+            padding: 2px 6px;
+            border-radius: 4px;
+            line-height: 1.1;
+            text-align: right;
+            cursor: text;
+            border: 1px dashed transparent;
+            white-space: pre-wrap;
+        }
+
+        .item-desc:hover,
+        .item-price:hover,
+        .item-desc:focus,
+        .item-price:focus {
+            border: 1px dashed #d31027;
+            background: #fff9f9;
+            outline: none;
+        }
+        
+        .bulk-cb { margin-right: 8px; transform: scale(1.2); cursor: pointer; }
+        .action-group { display: flex; gap: 4px; opacity: 0; transition: opacity 0.2s; position: absolute; right: 8px; top: -16px; z-index: 100; pointer-events: none; }
+        .grid-view-card .action-group { right: -5px; top: -15px; pointer-events: none; }
+        
+        .btn-action {
+            width: 24px;
+            height: 24px;
+            border-radius: 12px;
+            background: #ff4d4f;
+            color: white;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .list-view-block:hover .action-group { opacity: 1; pointer-events: auto; }
+
+        .grid-view-card:hover .action-group { opacity: 1; pointer-events: auto; }
+
+        .category-row:hover .action-group {
+            opacity: 1;
+            position: static;
+            margin-left: 10px;
+            pointer-events: auto;
+        }
+        
+        .grid-view-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 15px; }
+        .grid-view-card { background: white; border-radius: 12px; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.03); padding: 12px; display: flex; flex-direction: column; position: relative; break-inside: avoid; transition: transform 0.2s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.2s, box-shadow 0.2s; }
+        .grid-view-card.dragging { opacity: 0.5; transform: scale(1.05); box-shadow: 0 15px 30px rgba(0,0,0,0.1); }
+        .list-view-block.dragging { opacity: 0.5; transform: scale(1.02); }
+        .list-view-block { transition: transform 0.2s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.2s; }
+        .list-item-row { transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1); }
+        .grid-image-container { height: 120px; display: flex; align-items: center; justify-content: center; background: #fff; border-radius: 8px; margin-bottom: 10px; cursor: pointer; border: 2px dashed transparent; transition: border 0.2s; position: relative;}
+        .grid-image-container:hover { border: 2px dashed #d31027; }
+        .grid-image-container:hover::after { content: "Change image"; position: absolute; background: rgba(0, 0, 0, 0.7); color: white; font-size: 10px; padding: 4px; border-radius: 4px; pointer-events: none; }
+        .grid-view-image { max-width: 100%; max-height: 100%; object-fit: contain; }
+        .grid-view-items { display: flex; flex-direction: column; gap: 6px; align-items: center; text-align: center; }
+
+        .btn-add {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            background: rgba(40, 167, 69, 0.1);
+            color: #28a745;
+            border: 2px dashed #28a745;
+            border-radius: 8px;
+            padding: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+            transition: background 0.2s;
+            margin-bottom: 8px;
+        }
+
+        .btn-add:hover {
+            background: rgba(40, 167, 69, 0.2);
+        }
+
+        .toolbar {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            padding: 16px;
+            border-radius: 16px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            z-index: 1000;
+            width: 210px;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        .toolbar h3 {
+            margin-top: 0;
+            font-size: 15px;
+            font-weight: 700;
+            color: #1d1d1f;
+            margin-bottom: 8px;
+        }
+
+        .toolbar-btn {
+            display: block;
+            width: 100%;
+            padding: 8px 12px;
+            background: #0071e3;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: 6px;
+            box-sizing: border-box;
+            text-align: center;
+            transition: background 0.15s, transform 0.1s;
+            font-family: inherit;
+        }
+
+        .toolbar-btn:hover {
+            background: #0077ed;
+        }
+
+        .toolbar-btn:active {
+            transform: scale(0.98);
+        }
+
+        /* iOS Segmented Control Selector */
+        .segmented-control {
+            display: flex;
+            background: #f2f2f7;
+            border-radius: 10px;
+            padding: 2px;
+            margin-bottom: 12px;
+            border: 1px solid rgba(0,0,0,0.04);
+        }
+        .segmented-control a {
+            flex: 1;
+            text-align: center;
+            padding: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            text-decoration: none;
+            border-radius: 8px;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .segmented-control a.active {
+            background: white;
+            color: #1d1d1f;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+        }
+        .segmented-control a.inactive {
+            background: transparent;
+            color: #8e8e93;
+        }
+        .segmented-control a.inactive:hover {
+            color: #1d1d1f;
+        }
+
+        /* ios pill buttons */
+        .ios-pill-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: background 0.15s, transform 0.1s;
+            font-family: inherit;
+        }
+        .ios-pill-btn:active {
+            transform: scale(0.97);
+        }
+        .ios-pill-btn-primary {
+            background: #0071e3;
+            color: white;
+        }
+        .ios-pill-btn-primary:hover {
+            background: #0077ed;
+        }
+        .ios-pill-btn-secondary {
+            background: #f2f2f7;
+            color: #0071e3;
+        }
+        .ios-pill-btn-secondary:hover {
+            background: #e5e5ea;
+        }
+        .ios-pill-btn-danger {
+            background: #ffe5e5;
+            color: #ff3b30;
+        }
+        .ios-pill-btn-danger:hover {
+            background: #ffd1d1;
+        }
+
+        /* Toast config */
+        #toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+            z-index: 10000;
+            font-size: 14px;
+        }
+
+        /* Apple Glass Modal */
+        #glass-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        #glass-modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        #glass-modal {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(40px) saturate(180%);
+            -webkit-backdrop-filter: blur(40px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            border-radius: 24px;
+            padding: 30px;
+            width: 320px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15), inset 0 1px 1px rgba(255, 255, 255, 0.6);
+            transform: scale(0.95) translateY(20px);
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            text-align: center;
+        }
+
+        #glass-modal-overlay.active #glass-modal {
+            transform: scale(1) translateY(0);
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: #1d1d1f;
+        }
+
+        .apple-btn {
+            display: block;
+            width: 100%;
+            padding: 14px;
+            border-radius: 14px;
+            border: none;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: 12px;
+            transition: all 0.2s ease;
+            font-family: inherit;
+        }
+
+        .apple-btn-primary {
+            background: #0071e3;
+            color: white;
+        }
+
+        .apple-btn-primary:active {
+            background: #005bb5;
+            transform: scale(0.98);
+        }
+
+        .apple-btn-secondary {
+            background: rgba(0, 0, 0, 0.05);
+            color: #1d1d1f;
+            margin-bottom: 0px;
+        }
+
+        .apple-btn-secondary:active {
+            background: rgba(0, 0, 0, 0.1);
+            transform: scale(0.98);
+        }
+
+        .apple-input {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 14px;
+            border-radius: 12px;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            background: rgba(255, 255, 255, 0.8);
+            font-size: 15px;
+            margin-bottom: 12px;
+            outline: none;
+            transition: border 0.2s, box-shadow 0.2s;
+            display: block;
+            font-family: inherit;
+        }
+
+        .apple-input:focus {
+            border-color: #0071e3;
+            box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.2);
+        }
+
+        /* Apple Confirm Modal */
+        #glass-confirm-overlay {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0, 0, 0, 0.3); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+            z-index: 10005; display: flex; align-items: center; justify-content: center;
+            opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+        }
+        #glass-confirm-overlay.active { opacity: 1; pointer-events: auto; }
+        #glass-confirm-modal {
+            background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(40px) saturate(180%); -webkit-backdrop-filter: blur(40px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.4); border-radius: 24px; padding: 25px 30px 30px; width: 320px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15), inset 0 1px 1px rgba(255, 255, 255, 0.6);
+            transform: scale(0.95); transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); text-align: center;
+        }
+        #glass-confirm-overlay.active #glass-confirm-modal { transform: scale(1); }
+        .confirm-btn-row { display: flex; gap: 10px; margin-top: 15px; }
+        .confirm-danger { background: #ff3b30; color: white; margin-bottom: 0px !important; }
+        .confirm-danger:active { background: #d70015 !important; }
+        #category-sidebar {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 260px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            padding: 16px;
+            border-radius: 16px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+            z-index: 1000;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+        #category-sidebar h4 { margin: 0 0 15px 0; font-size: 15px; font-weight: 700; color: #1a1a1a; }
+        .sidebar-item {
+            display: block;
+            padding: 8px 12px;
+            color: #444;
+            text-decoration: none;
+            font-size: 13px;
+            border-radius: 8px;
+            margin-bottom: 5px;
+            transition: 0.2s;
+            cursor: pointer;
+            word-wrap: break-word;
+        }
+        .sidebar-item:hover {
+            background: rgba(0, 113, 227, 0.1);
+            color: #0071e3;
+            font-weight: 600;
+        }
+        .sidebar-item.active {
+            background: rgba(168, 12, 31, 0.1);
+            color: #a80c1f;
+            font-weight: 700;
+            border-left: 3px solid #a80c1f;
+            border-radius: 0 8px 8px 0;
+            padding-left: 9px;
+        }
+
+        /* Floating Apple-style Bulk Action Bar */
+        #floating-bulk-bar {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-100px);
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: 40px;
+            padding: 8px 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 9999;
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+            opacity: 0;
+            pointer-events: none;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+        #floating-bulk-bar.active {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .bulk-bar-count {
+            font-size: 13px;
+            font-weight: 500;
+            color: #8e8e93;
+            margin-right: 12px;
+        }
+        .bulk-bar-btn {
+            font-size: 13px;
+            font-weight: 600;
+            padding: 6px 14px;
+            border-radius: 20px;
+            border: none;
+            cursor: pointer;
+            transition: background 0.15s, transform 0.1s;
+            font-family: inherit;
+        }
+        .bulk-bar-btn:active {
+            transform: scale(0.97);
+        }
+        .bulk-bar-btn-move {
+            background: #f2f2f7;
+            color: #0071e3;
+        }
+        .bulk-bar-btn-move:hover {
+            background: #e5e5ea;
+        }
+        .bulk-bar-btn-delete {
+            background: #ffe5e5;
+            color: #ff3b30;
+        }
+        .bulk-bar-btn-delete:hover {
+            background: #ffd1d1;
+        }
+        .bulk-bar-btn-cancel {
+            background: transparent;
+            color: #8e8e93;
+        }
+        .bulk-bar-btn-cancel:hover {
+            color: #1d1d1f;
+        }
+        
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+</head>
+
+<body>
+
+    <!-- Floating Apple-style Bulk Action Bar -->
+    <div id="floating-bulk-bar" class="print-hide">
+        <span id="bulk-bar-count-label" class="bulk-bar-count">0 items selected</span>
+        <button class="bulk-bar-btn bulk-bar-btn-move" onclick="openMoveSelectedModal()">Move</button>
+        <button class="bulk-bar-btn bulk-bar-btn-delete" onclick="deleteSelected()">Delete</button>
+        <button class="bulk-bar-btn bulk-bar-btn-cancel" onclick="clearSelection()">Cancel</button>
+    </div>
+
+    <!-- Jinja Macro for List View Block rendering -->
+    {% macro render_list_block(block) %}
+        {% set first_id = block.elements[0].id %}
+        <div class="list-view-block layout-{{ block.group_layout or 'left' }} {% if block.group_id %}is-bulk{% endif %}" data-prod-id="{{ first_id }}">
+            <div class="action-group print-hide">
+                <select onchange="updateGroupLayout('{{ first_id }}', this.value)" class="print-hide" style="font-size: 11px; padding: 2px 4px; border-radius: 6px; border: 1px solid #ccc; background: white; cursor: pointer; outline: none; margin-right: 4px; display: inline-block; vertical-align: middle;">
+                    <option value="left" {% if block.group_layout == 'left' %}selected{% endif %}>Left Image</option>
+                    <option value="top" {% if block.group_layout == 'top' %}selected{% endif %}>Top Image</option>
+                    <option value="right" {% if block.group_layout == 'right' %}selected{% endif %}>Right Image</option>
+                </select>
+                {% if block.group_id %}
+                <button class="btn-action" style="background: #28a745; margin-right: 4px; display: inline-flex; vertical-align: middle;" title="Add Variation" onclick="addVariation('{{ first_id }}')">+</button>
+                {% endif %}
+                <button class="btn-action" style="display: inline-flex; vertical-align: middle;" title="Delete Block" onclick="deleteBlock('{{ first_id }}')">×</button>
+            </div>
+            {% set size = block.image_size %}
+            {% set style_str = "" %}
+            {% if size and size > 0 %}
+                {% if block.group_layout == 'top' %}
+                    {% set style_str = "height: " ~ size ~ "px;" %}
+                {% elif block.group_layout == 'right' %}
+                    {% set style_str = "flex: 0 0 " ~ size ~ "px; height: " ~ size ~ "px;" %}
+                {% else %}
+                    {% set style_str = "flex: 0 0 " ~ size ~ "px;" %}
+                {% endif %}
+            {% endif %}
+            <div class="list-view-image-container" style="{{ style_str }}" onclick="openImageManager('{{ first_id }}', this)">
+                <img class="list-view-image" src="/{{ block.image_path }}" onerror="this.style.display='none'" />
+                <div class="image-resize-controls print-hide" onclick="event.stopPropagation();">
+                    <button class="btn-resize" title="Increase Size" onclick="updateImageSize('{{ first_id }}', 'up')">+</button>
+                    <button class="btn-resize" title="Decrease Size" onclick="updateImageSize('{{ first_id }}', 'down')">-</button>
+                </div>
+            </div>
+            <div class="list-view-items">
+                {% for prod in block.elements %}
+                <div class="list-item-row" style="position: relative; display: flex; align-items: center; justify-content: space-between;">
+                    <input type="checkbox" class="bulk-cb print-hide" value="{{ prod.id }}">
+                    <div class="item-desc" contenteditable="true" onblur="updateProduct('{{ prod.id }}', this, 'name')">{{ prod.name }}</div>
+                    <div class="item-price" contenteditable="true" onblur="updateProduct('{{ prod.id }}', this, 'price')">{{ prod.price | safe }}</div>
+                    
+                    {% if block.elements|length > 1 %}
+                    <div class="row-delete-container print-hide" style="margin-left: 8px;">
+                        <button class="btn-action" style="width:18px; height:18px; font-size:11px; border-radius:9px; background:#aaa;" title="Delete Variation" onclick="deleteProduct('{{ prod.id }}')">×</button>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% endmacro %}
+
+    <!-- Apple-style Add Product Selection Overlay -->
+    <div id="glass-add-overlay" class="print-hide" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.3); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); z-index: 10000; display: none; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s ease;">
+        <div id="glass-add-modal" style="background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(40px) saturate(180%); -webkit-backdrop-filter: blur(40px) saturate(180%); border: 1px solid rgba(255, 255, 255, 0.4); border-radius: 24px; padding: 30px; width: 320px; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15); transform: scale(0.95); transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); text-align: center;">
+            <div class="modal-title" style="margin-bottom: 20px; font-size: 20px; font-weight: 700; color: #1d1d1f;">Add New Item</div>
+            <button onclick="submitAddProduct('left')" class="apple-btn" style="margin-bottom: 10px; background: #0071e3; color: white; border: none; font-weight: 600; cursor: pointer;">Single Product (Image Left)</button>
+            <button onclick="submitAddProduct('top')" class="apple-btn" style="margin-bottom: 10px; background: #0071e3; color: white; border: none; font-weight: 600; cursor: pointer;">Bulk Block (Image Top)</button>
+            <button onclick="submitAddProduct('right')" class="apple-btn" style="margin-bottom: 20px; background: #0071e3; color: white; border: none; font-weight: 600; cursor: pointer;">Bulk Block (Image Right)</button>
+            <button onclick="closeAddModal()" class="apple-btn" style="background: rgba(0,0,0,0.05); color: #333; border: none; cursor: pointer;">Cancel</button>
+        </div>
+    </div>
+
+    <!-- Apple-style Confirm / Alert Overlay -->
+    <div id="glass-confirm-overlay" class="print-hide">
+        <div id="glass-confirm-modal">
+            <div class="modal-title" id="confirm-msg" style="font-size: 16px; margin-bottom: 25px; line-height: 1.4; color: #1d1d1f; font-weight: 600;">Are you sure?</div>
+            <div class="confirm-btn-row">
+                <button id="confirm-cancel" class="apple-btn apple-btn-secondary" style="flex: 1; margin-bottom: 0;">Cancel</button>
+                <button id="confirm-ok" class="apple-btn confirm-danger" style="flex: 1; margin-bottom: 0;">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Apple-style Move Selected Overlay -->
+    <div id="glass-move-overlay" class="print-hide" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.3); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); z-index: 10005; display: none; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s ease;">
+        <div id="glass-move-modal" style="background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(40px) saturate(180%); -webkit-backdrop-filter: blur(40px) saturate(180%); border: 1px solid rgba(255, 255, 255, 0.4); border-radius: 24px; padding: 30px; width: 340px; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15); transform: scale(0.95); transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); text-align: left;">
+            <div class="modal-title" style="margin-bottom: 20px; font-size: 20px; font-weight: 700; color: #1d1d1f; text-align: center;">Move Selected Items</div>
+            
+            <label style="font-size: 13px; font-weight: 600; color: #515154; display: block; margin-bottom: 6px;">Select Destination Category:</label>
+            <select id="moveCategorySelect" class="apple-input" style="width: 100%; font-size: 14px; padding: 10px; border-radius: 12px; border: 1px solid rgba(0,0,0,0.15); background: white; margin-bottom: 15px; outline: none;" onchange="toggleMoveCategoryInputs(this.value)">
+                {% for cat in categories %}
+                    <option value="{{ cat.id }}">{{ cat.name }}</option>
+                {% endfor %}
+                <option value="NEW_CATEGORY">+ Create New Category...</option>
+            </select>
+            
+            <div id="moveNewCategoryWrapper" style="display: none; margin-bottom: 15px;">
+                <label style="font-size: 13px; font-weight: 600; color: #515154; display: block; margin-bottom: 6px;">New Category Name:</label>
+                <input type="text" id="moveNewCategoryInput" class="apple-input" placeholder="Enter name" style="width: 100%; box-sizing: border-box; font-size: 14px; padding: 10px; border-radius: 12px; border: 1px solid rgba(0,0,0,0.15); background: white;" />
+            </div>
+            
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button onclick="closeMoveSelectedModal()" class="apple-btn apple-btn-secondary" style="flex: 1; margin: 0; cursor: pointer;">Cancel</button>
+                <button onclick="submitMoveSelected()" class="apple-btn apple-btn-primary" style="flex: 1; margin: 0; background: #0071e3; color: white; border: none; cursor: pointer;">Move</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- iOS Action Sheet for Image Options -->
+    <div id="glass-actionsheet-overlay" class="print-hide" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.3); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); z-index: 10005; display: none; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s ease;">
+        <div id="glass-actionsheet-modal" style="background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(40px) saturate(180%); -webkit-backdrop-filter: blur(40px) saturate(180%); border: 1px solid rgba(255, 255, 255, 0.4); border-radius: 20px; padding: 20px; width: 280px; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15); transform: scale(0.95); transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); text-align: center;">
+            <div class="modal-title" style="margin-bottom: 15px; font-size: 15px; font-weight: 700; color: #8e8e93; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">Photo Actions</div>
+            <button onclick="triggerUploadNewPhoto()" class="ios-pill-btn ios-pill-btn-primary" style="width: 100%; margin-bottom: 10px; padding: 10px; font-size: 14px;">Choose New Photo</button>
+            <button onclick="triggerCropCurrentPhoto()" class="ios-pill-btn ios-pill-btn-secondary" style="width: 100%; margin-bottom: 15px; padding: 10px; font-size: 14px;">Crop Current Photo</button>
+            <button onclick="closeActionSheet()" class="ios-pill-btn" style="width: 100%; background: rgba(0,0,0,0.05); color: #8e8e93; padding: 10px; font-size: 14px;">Cancel</button>
+        </div>
+    </div>
+
+    <!-- iOS Image Crop Modal -->
+    <div id="glass-crop-overlay" class="print-hide" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); z-index: 10006; display: none; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s ease;">
+        <div id="glass-crop-modal" style="background: white; border-radius: 24px; padding: 24px; width: 90vw; max-width: 500px; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3); transform: scale(0.95); transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); text-align: center; display: flex; flex-direction: column; gap: 15px;">
+            <div class="modal-title" style="font-size: 18px; font-weight: 700; color: #1d1d1f; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin-bottom: 5px;">Adjust Photo</div>
+            
+            <div style="width: 100%; height: 350px; background: #f2f2f7; border-radius: 12px; overflow: hidden; display: flex; align-items: center; justify-content: center; position: relative;">
+                <img id="cropImageSource" style="max-width: 100%; max-height: 100%; display: block;" />
+            </div>
+            
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <button onclick="closeCropModal()" class="ios-pill-btn ios-pill-btn-secondary" style="flex: 1; padding: 10px; font-size: 14px;">Cancel</button>
+                <button onclick="saveCroppedImage()" class="ios-pill-btn ios-pill-btn-primary" style="flex: 1; padding: 10px; font-size: 14px;">Apply Crop</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Sidebar TOC -->
+    <div id="category-sidebar" class="print-hide">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h4 style="margin: 0;">Navigation</h4>
+            <button onclick="sortCategoriesAZ()" class="apple-btn apple-btn-secondary" style="font-size: 11px; padding: 4px 8px; margin: 0; width: auto; min-height: auto;">Sort A-Z</button>
+        </div>
+        <div id="sidebar-list">
+            {% for cat in categories %}
+                <a class="sidebar-item" href="#cat-{{ cat.id }}" data-cat-id="{{ cat.id }}">{{ cat.name }}</a>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="print-hide toolbar">
+        <h3>Finapack Builder</h3>
+        <p style="font-size: 11px; color: #8e8e93; margin-bottom: 16px; line-height: 1.35;">Click text to edit. Click images to swap. Changes save automatically.</p>
+
+        <!-- Catalog Manager Section -->
+        <div class="catalog-manager" style="border: 1px solid rgba(0,0,0,0.08); border-radius: 12px; padding: 12px; background: white; margin-bottom: 16px;">
+            <label style="font-size: 10px; font-weight: 700; color: #8e8e93; display: block; margin-bottom: 6px; letter-spacing: 0.5px;">ACTIVE CATALOG</label>
+            <select id="catalogSelector" onchange="switchCatalog(this.value)" style="width: 100%; padding: 8px; font-size: 13px; border-radius: 8px; border: 1px solid rgba(0,0,0,0.12); background: white; margin-bottom: 8px; font-weight: 500; outline: none; cursor: pointer; color: #1d1d1f;">
+                {% for cat in catalogs %}
+                    <option value="{{ cat.id }}" {% if cat.id == active_catalog_id %}selected{% endif %}>{{ cat.name }}</option>
+                {% endfor %}
+            </select>
+            
+            <div style="display: flex; gap: 6px; margin-bottom: 8px;">
+                <button class="ios-pill-btn ios-pill-btn-primary" style="flex: 1;" onclick="createNewCatalog()">+ New</button>
+                <button class="ios-pill-btn ios-pill-btn-secondary" style="flex: 1;" onclick="renameCatalog()">Rename</button>
+            </div>
+            {% if active_catalog_id != 1 %}
+            <button class="ios-pill-btn ios-pill-btn-danger" style="width: 100%; margin-bottom: 8px;" onclick="deleteCatalog()">Delete Catalog</button>
+            {% endif %}
+            
+            <hr style="border: 0; border-top: 1px solid rgba(0,0,0,0.08); margin: 10px 0;">
+            
+            <label style="font-size: 10px; font-weight: 700; color: #8e8e93; display: block; margin-bottom: 6px; letter-spacing: 0.5px;">BACKUP & RESTORE</label>
+            <div style="display: flex; gap: 6px;">
+                <button class="ios-pill-btn ios-pill-btn-secondary" style="flex: 1;" onclick="exportCatalogBackup()">Export</button>
+                <button class="ios-pill-btn ios-pill-btn-secondary" style="flex: 1;" onclick="triggerImportBackup()">Import</button>
+            </div>
+            <input type="file" id="backupImportInput" style="display: none;" accept=".json" onchange="importCatalogBackup(this.files[0])" />
+        </div>
+        
+        <!-- iOS Segmented Control -->
+        <div class="segmented-control">
+            <a href="/?mode=list" class="{% if mode == 'list' %}active{% else %}inactive{% endif %}">List</a>
+            <a href="/?mode=grid" class="{% if mode == 'grid' %}active{% else %}inactive{% endif %}">Grid</a>
+        </div>
+
+        <!-- PDF Export Options -->
+        <div style="border: 1px solid rgba(0,0,0,0.08); border-radius: 12px; padding: 10px; background: white; margin-bottom: 12px;">
+            <label style="font-size: 10px; font-weight: 700; color: #8e8e93; display: block; margin-bottom: 6px; letter-spacing: 0.5px;">PDF COVER & INDEX</label>
+            <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: #1d1d1f; cursor: pointer; margin-bottom: 4px;">
+                <input type="checkbox" id="toggleCoverPage" checked onchange="togglePdfPage('cover-wrapper', this.checked)"> Cover Page
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: #1d1d1f; cursor: pointer;">
+                <input type="checkbox" id="toggleTocPage" checked onchange="togglePdfPage('toc-wrapper', this.checked)"> Category Index (TOC)
+            </label>
+        </div>
+
+        <button class="toolbar-btn" onclick="window.print()">Print PDF</button>
+        <button class="toolbar-btn" style="background: rgba(0, 113, 227, 0.1); color: #0071e3;" onclick="addCategory()">+ Add Category</button>
+    </div>
+
+    <div id="toast">Saved!</div>
+
+    <input type="file" id="imagePicker" style="display: none;" accept="image/*" />
+
+    <!-- PDF / WYSIWYG Cover Page -->
+    <div class="page-wrapper cover-wrapper" id="pdf-cover-page">
+        <div class="product-page cover-page-content" style="display: flex; flex-direction: column; justify-content: space-between; align-items: center; padding: 40px 30px; box-sizing: border-box; text-align: center; position: relative; background: #ffffff;">
+            <div style="margin-top: 20px;">
+                <img alt="Finapack Logo" src="/static/finapacklogo.png" style="max-width: 200px; height: auto; margin-bottom: 16px;" onerror="this.src='/static/finapacklogo.png'" />
+                <div style="width: 50px; height: 4px; background: #0071e3; margin: 0 auto 20px auto; border-radius: 2px;"></div>
+            </div>
+
+            <div style="margin: 20px 0;">
+                <div class="cover-title" contenteditable="true" onblur="saveCoverText('title', this.innerText)" style="font-size: 36px; font-weight: 800; color: #1d1d1f; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 10px; font-family: 'Outfit', sans-serif;">{{ cover_title }}</div>
+                <div class="cover-subtitle" contenteditable="true" onblur="saveCoverText('subtitle', this.innerText)" style="font-size: 16px; font-weight: 500; color: #0071e3; letter-spacing: 0.5px; font-family: 'Outfit', sans-serif;">{{ cover_subtitle }}</div>
+            </div>
+
+            <div style="margin-bottom: 20px; border-top: 1px solid rgba(0,0,0,0.1); padding-top: 20px; width: 80%;">
+                <div class="cover-footer-text" contenteditable="true" onblur="saveCoverText('footer', this.innerHTML)" style="font-size: 12.5px; color: #6e6e73; line-height: 1.5; font-family: 'Outfit', sans-serif;">
+                    {{ cover_footer|safe }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PDF / WYSIWYG Table of Contents Page(s) -->
+    {% set toc_chunks = (categories | batch(44)) | list %}
+    {% for chunk in toc_chunks %}
+    {% set chunk_index = loop.index0 %}
+    <div class="page-wrapper toc-wrapper" id="pdf-toc-page{% if not loop.first %}-{{ loop.index }}{% endif %}">
+        <div class="product-page toc-page-content" style="padding: 28px 35px; box-sizing: border-box; background: #ffffff; display: flex; flex-direction: column; justify-content: space-between; position: relative;">
+            <div>
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #1d1d1f; padding-bottom: 10px; margin-bottom: 14px;">
+                    <div>
+                        <div style="font-size: 22px; font-weight: 800; color: #1d1d1f; letter-spacing: 0.5px; text-transform: uppercase; font-family: 'Outfit', sans-serif;">TABLE OF CONTENTS {% if toc_chunks|length > 1 %}<span style="font-size: 13px; font-weight: 500; color: #8e8e93;">(Page {{ loop.index }} of {{ toc_chunks|length }})</span>{% endif %}</div>
+                        <div style="font-size: 11px; color: #8e8e93; margin-top: 2px;">Click any category to jump directly to its section</div>
+                    </div>
+                    <img alt="Finapack Logo" src="/static/finapacklogo.png" style="height: 32px; width: auto;" onerror="this.src='/static/finapacklogo.png'" />
+                </div>
+
+                <div class="pdf-toc-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px 20px;">
+                    {% for cat in chunk %}
+                    {% set cat_index = (chunk_index * 44) + loop.index %}
+                    <a href="#cat-{{ cat.id }}" class="pdf-toc-item" style="display: flex; align-items: center; justify-content: space-between; padding: 6px 12px; background: #f9f9fb; border: 1px solid rgba(0,0,0,0.06); border-radius: 7px; text-decoration: none; color: #1d1d1f; transition: all 0.2s ease;">
+                        <span style="font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px;">{{ cat_index }}. {{ cat.name }}</span>
+                        <span style="font-size: 10.5px; color: #0071e3; font-weight: 600; flex-shrink: 0; margin-left: 6px;">View →</span>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div style="text-align: center; font-size: 11px; font-weight: 700; color: #6e6e73; border-top: 1px solid #f0f0f2; padding-top: 8px; margin-top: 15px; font-family: 'Outfit', sans-serif; letter-spacing: 0.5px;">
+                Finapack Trading
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+
+    {% for page in pages %}
+    <div class="page-wrapper">
+        <div class="product-page">
+            <img alt="Finapack Logo" class="logo-top-right print-hide"
+                src="{{ url_for('static', filename='finapacklogo.png') }}"
+                onerror="this.src='/static/finapacklogo.png'" />
+            <img alt="Finapack Logo" class="logo-top-right" style="display: none;" id="print_logo"
+                src="/static/finapacklogo.png" />
+            <div class="products-tab">Product Catalog</div>
+            <div class="content-container">
+
+                {% for item in page %}
+                {% if item.type == 'header' %}
+                <div class="category-row"{% if not item.is_cont %} id="cat-{{ item.cat_id }}"{% endif %}>
+                    <div class="category-header" contenteditable="true"
+                        onblur="updateCategory('{{ item.cat_id }}', this.innerText)">{{ item.text }}</div>
+                    <div class="action-group print-hide">
+                        <button class="btn-action" style="background: #17a2b8;" title="Move Up" onclick="moveCategory('{{ item.cat_id }}', 'up')">↑</button>
+                        <button class="btn-action" style="background: #17a2b8;" title="Move Down" onclick="moveCategory('{{ item.cat_id }}', 'down')">↓</button>
+                        <button class="btn-action" title="Delete Category" onclick="deleteCategory('{{ item.cat_id }}')">×</button>
+                    </div>
+                </div>                {% elif item.type == 'chunk' %}
+                    {% if item.row.type != 'empty' %}
+                        {% set first_block = item.row.row_blocks[0] %}
+                        {% if item.mode == 'list' or first_block.group_id %}
+                            <!-- Render List View Block (Full Width) -->
+                            {{ render_list_block(first_block) }}
+                        {% else %}
+                            <!-- Grid Mode -->
+                            <div class="grid-view-row">
+                                {% for block in item.row.row_blocks %}
+                                    {% set first_id = block.elements[0].id %}
+                                    <div class="grid-view-card" data-prod-id="{{ first_id }}">
+                                        <input type="checkbox" class="bulk-cb print-hide" style="position: absolute; left: 10px; top: 10px; z-index: 10;" value="{{ first_id }}">
+                                        <div class="action-group print-hide">
+                                            <button class="btn-action" title="Delete Product" onclick="deleteProduct('{{ first_id }}')">×</button>
+                                        </div>
+                                        {% set size = block.image_size %}
+                                        {% set style_str = "" %}
+                                        {% if size and size > 0 %}
+                                            {% set style_str = "height: " ~ size ~ "px;" %}
+                                        {% endif %}
+                                        <div class="grid-image-container" style="{{ style_str }}" onclick="openImageManager('{{ first_id }}', this)">
+                                            <img class="grid-view-image" src="/{{ block.image_path }}" onerror="this.style.display='none'" />
+                                            <div class="image-resize-controls print-hide" onclick="event.stopPropagation();">
+                                                <button class="btn-resize" title="Increase Size" onclick="updateImageSize('{{ first_id }}', 'up')">+</button>
+                                                <button class="btn-resize" title="Decrease Size" onclick="updateImageSize('{{ first_id }}', 'down')">-</button>
+                                            </div>
+                                        </div>
+                                        <div class="grid-view-items">
+                                            {% for prod in block.elements %}
+                                                <div class="item-desc" contenteditable="true" onblur="updateProduct('{{ prod.id }}', this, 'name')" style="font-size: 11px; padding: 0;">{{ prod.name }}</div>
+                                                <div class="item-price" contenteditable="true" onblur="updateProduct('{{ prod.id }}', this, 'price')" style="text-align: center;">{{ prod.price | safe }}</div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    {% endif %}
+                    
+                    {% if item.is_last %}
+                    <div class="btn-add print-hide" onclick="addProduct('{{ item.cat_id }}')">+ Add Product</div>
+                    {% endif %}
+                {% endif %}
+                {% endfor %}
+
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+
+    <script>
+        function showToast(msg) {
+            let t = document.getElementById('toast');
+            t.innerText = msg;
+            t.style.opacity = 1;
+            setTimeout(() => t.style.opacity = 0, 2000);
+        }
+
+        // Auto-reload to recalculate pagination after structural changes
+        async function structChange(msg, delayMs = 0) {
+            showToast(msg);
+            
+            // Wait for micro-animations (like a delete shrink) to finish
+            await new Promise(r => setTimeout(r, delayMs));
+            
+            try {
+                const response = await fetch(window.location.href);
+                const htmlText = await response.text();
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(htmlText, 'text/html');
+                
+                const performSwap = () => {
+                    let scrollY = window.scrollY; // Preserve scroll!
+                    
+                    // Lock height temporarily to prevent scroll collapse bug and jump-to-top
+                    document.body.style.minHeight = document.body.getBoundingClientRect().height + 'px';
+                    
+                    document.querySelectorAll('.page-wrapper').forEach(e => e.remove());
+                    let oldSidebar = document.getElementById('category-sidebar');
+                    if (oldSidebar) oldSidebar.remove();
+                    
+                    let referenceNode = document.body.querySelector('script');
+                    
+                    let newSidebar = doc.getElementById('category-sidebar');
+                    if (newSidebar) document.body.insertBefore(newSidebar, referenceNode);
+                    
+                    doc.querySelectorAll('.page-wrapper').forEach(w => {
+                        document.body.insertBefore(w, referenceNode);
+                    });
+                    
+                    initSortable(); // Re-bind SortableJS to the new DOM nodes
+                    updateBulkBar(); // Update/hide the floating bulk bar
+                    window.scrollTo(0, scrollY);
+                    
+                    document.body.style.minHeight = 'auto'; // release lock
+                };
+                
+                // Apple-style magical cross-fade swapping natively supported by modern browsers!
+                if (document.startViewTransition) {
+                    document.startViewTransition(performSwap);
+                } else {
+                    performSwap();
+                }
+                
+            } catch(e) {
+                location.reload();
+            }
+        }
+
+        function updateProduct(prodId, el, field) {
+            let val = el.innerText.trim();
+            // Just send the fields we know
+            let name = field === 'name' ? val : el.parentNode.querySelector('.item-desc').innerText;
+            let price = field === 'price' ? val : el.parentNode.querySelector('.item-price').innerText;
+
+            fetch('/api/update_product', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ prod_id: prodId, name: name, price: price })
+            }).then(() => showToast('Saved!'));
+        }
+
+        // Apple Confirm Logic
+        let resolveConfirm = null;
+        function appleConfirm(msg, type = 'danger', actionText = 'Delete') {
+            return new Promise(resolve => {
+                resolveConfirm = resolve;
+                let btnOk = document.getElementById('confirm-ok');
+                document.getElementById('confirm-msg').innerText = msg;
+                
+                if (type === 'alert') {
+                    document.getElementById('confirm-cancel').style.display = 'none';
+                    btnOk.innerText = 'OK';
+                    btnOk.className = 'apple-btn apple-btn-primary';
+                } else {
+                    document.getElementById('confirm-cancel').style.display = 'block';
+                    btnOk.innerText = actionText;
+                    btnOk.className = type === 'danger' ? 'apple-btn confirm-danger' : 'apple-btn apple-btn-primary';
+                }
+                document.getElementById('glass-confirm-overlay').classList.add('active');
+            });
+        }
+        function closeConfirm(result) {
+            document.getElementById('glass-confirm-overlay').classList.remove('active');
+            if(resolveConfirm) resolveConfirm(result);
+        }
+        document.getElementById('confirm-cancel').onclick = () => closeConfirm(false);
+        document.getElementById('confirm-ok').onclick = () => closeConfirm(true);
+
+        async function deleteProduct(prodId) {
+            if (!(await appleConfirm("Are you sure you want to delete this product?"))) return;
+            
+            // Micro animation
+            let items = document.querySelectorAll(`[onclick="deleteProduct('${prodId}')"]`);
+            items.forEach(item => {
+                let parent = item.closest('.list-item-row') || item.closest('.grid-view-card');
+                if(parent) {
+                    parent.style.transition = 'all 0.3s ease';
+                    parent.style.opacity = '0';
+                    parent.style.transform = 'scale(0.8)';
+                }
+            });
+            
+            fetch('/api/delete_product', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ prod_id: prodId })
+            }).then(() => structChange('Product deleted.', 200));
+        }
+
+        let activeAddCategoryId = null;
+        function addProduct(catId) {
+            activeAddCategoryId = catId;
+            let overlay = document.getElementById('glass-add-overlay');
+            overlay.style.display = 'flex';
+            setTimeout(() => {
+                overlay.style.opacity = '1';
+                document.getElementById('glass-add-modal').style.transform = 'scale(1)';
+            }, 10);
+        }
+
+        function closeAddModal() {
+            let overlay = document.getElementById('glass-add-overlay');
+            overlay.style.opacity = '0';
+            document.getElementById('glass-add-modal').style.transform = 'scale(0.95)';
+            setTimeout(() => {
+                overlay.style.display = 'none';
+            }, 300);
+        }
+
+        function submitAddProduct(layout) {
+            closeAddModal();
+            fetch('/api/add_product', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ category_id: activeAddCategoryId, layout: layout })
+            }).then(() => structChange('Product added.'));
+        }
+
+        function addVariation(prodId) {
+            fetch('/api/add_variation', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ prod_id: prodId })
+            }).then(() => structChange('Variation added.'));
+        }
+
+        function updateGroupLayout(prodId, layout) {
+            fetch('/api/update_group_layout', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ prod_id: prodId, layout: layout })
+            }).then(() => structChange('Layout updated.'));
+        }
+
+        function updateImageSize(prodId, change) {
+            fetch('/api/update_image_size', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ prod_id: prodId, change: change })
+            }).then(() => structChange('Image resized.'));
+        }
+
+        async function deleteBlock(prodId) {
+            if (!(await appleConfirm("Delete this entire product block?"))) return;
+            fetch('/api/delete_group', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ prod_id: prodId })
+            }).then(() => structChange('Product block deleted.'));
+        }
+
+        function updateCategory(catId, name) {
+            fetch('/api/update_category_name', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ category_id: catId, name: name.trim() })
+            }).then(() => structChange('Saved!'));
+        }
+
+        function addCategory() {
+            fetch('/api/add_category', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ catalog_id: {{ active_catalog_id }} })
+            }).then(() => structChange('Category added.'));
+        }
+
+        // --- CATALOG MANAGER JAVASCRIPT ACTIONS ---
+        
+        function switchCatalog(catalogId) {
+            let url = new URL(window.location.href);
+            url.searchParams.set('catalog_id', catalogId);
+            window.location.href = url.toString();
+        }
+
+        async function createNewCatalog() {
+            let name = prompt("Enter name for the new catalog:");
+            if (!name || !name.trim()) return;
+            
+            let res = await fetch('/api/create_catalog', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: name.trim() })
+            });
+            let data = await res.json();
+            if (data.success) {
+                switchCatalog(data.catalog_id);
+            } else {
+                alert(data.error || "Failed to create catalog.");
+            }
+        }
+
+        async function renameCatalog() {
+            let oldName = document.getElementById('catalogSelector').options[document.getElementById('catalogSelector').selectedIndex].text;
+            let name = prompt("Enter new name for this catalog:", oldName);
+            if (!name || !name.trim() || name.trim() === oldName) return;
+            
+            let res = await fetch('/api/rename_catalog', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ catalog_id: {{ active_catalog_id }}, name: name.trim() })
+            });
+            let data = await res.json();
+            if (data.success) {
+                structChange('Catalog renamed.');
+            } else {
+                alert(data.error || "Failed to rename catalog.");
+            }
+        }
+
+        async function deleteCatalog() {
+            if (!(await appleConfirm("Are you sure you want to delete this entire catalog? This will delete all categories and products inside it!"))) return;
+            if (!(await appleConfirm("CRITICAL WARNING: This action CANNOT be undone. Are you absolutely positive you want to delete all catalog data?"))) return;
+            
+            let res = await fetch('/api/delete_catalog', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ catalog_id: {{ active_catalog_id }} })
+            });
+            let data = await res.json();
+            if (data.success) {
+                window.location.href = '/?catalog_id=1';
+            } else {
+                alert(data.error || "Failed to delete catalog.");
+            }
+        }
+
+        function exportCatalogBackup() {
+            window.location.href = '/api/export_catalog?catalog_id=' + {{ active_catalog_id }};
+        }
+
+        function triggerImportBackup() {
+            document.getElementById('backupImportInput').click();
+        }
+
+        async function importCatalogBackup(file) {
+            if (!file) return;
+            if (!confirm("Importing this backup will overwrite ALL existing categories and products in the current catalog. Continue?")) {
+                document.getElementById('backupImportInput').value = "";
+                return;
+            }
+            
+            let formData = new FormData();
+            formData.append('catalog_id', {{ active_catalog_id }});
+            formData.append('file', file);
+            
+            showToast("Importing backup...");
+            let res = await fetch('/api/import_catalog', {
+                method: 'POST',
+                body: formData
+            });
+            let data = await res.json();
+            if (data.success) {
+                structChange('Backup imported successfully.');
+            } else {
+                alert(data.error || "Failed to import backup.");
+                document.getElementById('backupImportInput').value = "";
+            }
+        }
+
+        async function deleteCategory(catId) {
+            if (!(await appleConfirm("Warning: Deleting a category wipes ALL products inside it. Continue?"))) return;
+            fetch('/api/delete_category', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ category_id: catId })
+            }).then(() => structChange('Category wiped.'));
+        }
+
+        function moveCategory(catId, direction) {
+            let sidebarItems = Array.from(document.querySelectorAll('#sidebar-list .sidebar-item'));
+            let ids = sidebarItems.map(el => el.getAttribute('data-cat-id'));
+            
+            let idx = ids.indexOf(String(catId));
+            if (idx === -1) return;
+            
+            if (direction === 'up' && idx > 0) {
+                let temp = ids[idx];
+                ids[idx] = ids[idx - 1];
+                ids[idx - 1] = temp;
+            } else if (direction === 'down' && idx < ids.length - 1) {
+                let temp = ids[idx];
+                ids[idx] = ids[idx + 1];
+                ids[idx + 1] = temp;
+            } else {
+                return;
+            }
+            
+            fetch('/api/reorder_categories', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ category_ids: ids })
+            }).then(() => structChange('Category moved.'));
+        }
+
+        async function sortCategoriesAZ() {
+            if (!(await appleConfirm("Are you sure you want to alphabetically sort all categories?", "primary", "Sort A-Z"))) return;
+            fetch('/api/sort_categories_az', { method: 'POST' }).then(() => structChange('Categories sorted A-Z.', 100));
+        }
+
+        // Initialize Sortable JavaScript
+        function handleSortEnd(evt) {
+            let draggedId = evt.item.getAttribute('data-prod-id');
+            // If dragging occurred in the DOM, let's trigger the Python swap API
+            // using the sibling element to swap!
+            let targetId = null;
+            if(evt.newIndex > evt.oldIndex) {
+                 // Moved down, swap with previous node
+                 let prevRow = evt.item.previousElementSibling;
+                 if(prevRow) targetId = prevRow.getAttribute('data-prod-id');
+            } else {
+                 // Moved up, swap with next node
+                 let nextRow = evt.item.nextElementSibling;
+                 if(nextRow) targetId = nextRow.getAttribute('data-prod-id');
+            }
+            if(!draggedId || !targetId || draggedId === targetId) return;
+            
+            fetch('/api/swap_products', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ prod1_id: draggedId, prod2_id: targetId })
+            }).then(() => structChange('Products reordered!', 100));
+        }
+
+        function initSortable() {
+            document.querySelectorAll('.content-container').forEach(container => {
+                new Sortable(container, {
+                    group: 'shared-blocks',
+                    animation: 250,
+                    draggable: '.list-view-block',
+                    onEnd: handleSortEnd
+                });
+            });
+            document.querySelectorAll('.grid-view-row').forEach(row => {
+                new Sortable(row, {
+                    group: 'shared-grids',
+                    animation: 250,
+                    draggable: '.grid-view-card',
+                    onEnd: handleSortEnd
+                });
+            });
+            
+            let sidebar = document.getElementById('sidebar-list');
+            if (sidebar) {
+                new Sortable(sidebar, {
+                    animation: 250,
+                    onEnd: function (evt) {
+                        let items = Array.from(evt.to.children).map(el => el.getAttribute('data-cat-id'));
+                        fetch('/api/reorder_categories', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ category_ids: items })
+                        }).then(() => structChange('Categories reordered!', 100));
+                    }
+                });
+            }
+        }
+        
+        function initScrollSpy() {
+            const sidebarItems = document.querySelectorAll('.sidebar-item');
+            const categoryHeaders = Array.from(document.querySelectorAll('[id^="cat-"]'));
+            
+            function onScroll() {
+                let currentId = null;
+                const threshold = 180; // pixels from viewport top to trigger highlight
+                
+                for (let i = 0; i < categoryHeaders.length; i++) {
+                    const header = categoryHeaders[i];
+                    const rect = header.getBoundingClientRect();
+                    
+                    if (rect.top <= threshold) {
+                        currentId = header.getAttribute('id');
+                    } else {
+                        break;
+                    }
+                }
+                
+                if ((window.innerHeight + window.scrollY) >= document.documentElement.scrollHeight - 30) {
+                    if (categoryHeaders.length > 0) {
+                        currentId = categoryHeaders[categoryHeaders.length - 1].getAttribute('id');
+                    }
+                }
+                
+                sidebarItems.forEach(item => {
+                    const href = item.getAttribute('href');
+                    if (href === '#' + currentId) {
+                        item.classList.add('active');
+                    } else {
+                        item.classList.remove('active');
+                    }
+                });
+            }
+            
+            window.addEventListener('scroll', onScroll);
+            onScroll();
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initSortable();
+            initScrollSpy();
+            
+            document.addEventListener('change', (e) => {
+                if (e.target && e.target.classList.contains('bulk-cb')) {
+                    updateBulkBar();
+                }
+            });
+            updateBulkBar();
+        });
+
+        function updateBulkBar() {
+            const checkedBoxes = document.querySelectorAll('.bulk-cb:checked');
+            const count = checkedBoxes.length;
+            const bar = document.getElementById('floating-bulk-bar');
+            const label = document.getElementById('bulk-bar-count-label');
+            if (bar && label) {
+                if (count > 0) {
+                    label.innerText = `${count} item${count > 1 ? 's' : ''} selected`;
+                    bar.classList.add('active');
+                } else {
+                    bar.classList.remove('active');
+                }
+            }
+        }
+
+        function clearSelection() {
+            document.querySelectorAll('.bulk-cb:checked').forEach(cb => cb.checked = false);
+            updateBulkBar();
+        }
+
+        async function deleteSelected() {
+            const boxes = document.querySelectorAll('.bulk-cb:checked');
+            if (boxes.length === 0) {
+                await appleConfirm("Please select at least one product using the checkboxes.", "alert");
+                return;
+            }
+            if(!(await appleConfirm(`Delete ${boxes.length} products entirely?`))) return;
+            
+            boxes.forEach(b => {
+                let parent = b.closest('.list-item-row') || b.closest('.grid-view-card');
+                if(parent) {
+                    parent.style.transition = 'all 0.3s ease';
+                    parent.style.opacity = '0';
+                    parent.style.transform = 'scale(0.8)';
+                }
+            });
+            
+            const ids = Array.from(boxes).map(b => b.value);
+            fetch('/api/delete_multiple', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ prod_ids: ids })
+            }).then(() => structChange(`${ids.length} products wiped.`, 250));
+        }
+
+        function toggleMoveCategoryInputs(val) {
+            let wrapper = document.getElementById('moveNewCategoryWrapper');
+            if (val === 'NEW_CATEGORY') {
+                wrapper.style.display = 'block';
+                document.getElementById('moveNewCategoryInput').focus();
+            } else {
+                wrapper.style.display = 'none';
+            }
+        }
+
+        async function openMoveSelectedModal() {
+            const boxes = document.querySelectorAll('.bulk-cb:checked');
+            if (boxes.length === 0) {
+                await appleConfirm("Please select at least one product using the checkboxes.", "alert");
+                return;
+            }
+            
+            let overlay = document.getElementById('glass-move-overlay');
+            overlay.style.display = 'flex';
+            setTimeout(() => {
+                overlay.style.opacity = '1';
+                overlay.querySelector('#glass-move-modal').style.transform = 'scale(1)';
+            }, 10);
+        }
+
+        function closeMoveSelectedModal() {
+            let overlay = document.getElementById('glass-move-overlay');
+            overlay.style.opacity = '0';
+            overlay.querySelector('#glass-move-modal').style.transform = 'scale(0.95)';
+            setTimeout(() => {
+                overlay.style.display = 'none';
+                document.getElementById('moveNewCategoryInput').value = '';
+                let select = document.getElementById('moveCategorySelect');
+                if (select && select.querySelector('option')) {
+                    select.value = select.querySelector('option').value;
+                }
+                document.getElementById('moveNewCategoryWrapper').style.display = 'none';
+            }, 300);
+        }
+
+        async function submitMoveSelected() {
+            const boxes = document.querySelectorAll('.bulk-cb:checked');
+            const ids = Array.from(boxes).map(b => b.value);
+            if (ids.length === 0) return;
+            
+            const selectVal = document.getElementById('moveCategorySelect').value;
+            const newCatName = document.getElementById('moveNewCategoryInput').value.trim();
+            
+            let categoryId = null;
+            let newCategoryName = "";
+            
+            if (selectVal === 'NEW_CATEGORY') {
+                if (!newCatName) {
+                    alert("Please enter a new category name.");
+                    return;
+                }
+                newCategoryName = newCatName;
+            } else {
+                categoryId = selectVal;
+            }
+            
+            fetch('/api/move_multiple_products', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    prod_ids: ids,
+                    category_id: categoryId,
+                    new_category_name: newCategoryName,
+                    catalog_id: {{ active_catalog_id }}
+                })
+            }).then(res => res.json()).then(data => {
+                if (data.success) {
+                    closeMoveSelectedModal();
+                    structChange(`${ids.length} items moved.`);
+                } else {
+                    alert(data.error || "Failed to move items.");
+                }
+            });
+        }
+
+        // Image Upload & Crop Logic
+        let currentUploadProdId = null;
+        let fileInput = document.getElementById('imagePicker');
+        let currentImageEl = null;
+        let cropper = null;
+        let pendingFile = null;
+
+        function openImageManager(prodId, el) {
+            currentUploadProdId = prodId;
+            currentImageEl = el.querySelector('img');
+            
+            if (currentImageEl && currentImageEl.src && !currentImageEl.src.includes('ref_bottle.jpg') && currentImageEl.style.display !== 'none') {
+                openActionSheet();
+            } else {
+                triggerUploadNewPhoto();
+            }
+        }
+
+        function openActionSheet() {
+            let sheet = document.getElementById('glass-actionsheet-overlay');
+            sheet.style.display = 'flex';
+            setTimeout(() => {
+                sheet.style.opacity = '1';
+                sheet.querySelector('#glass-actionsheet-modal').style.transform = 'scale(1)';
+            }, 10);
+        }
+
+        function closeActionSheet() {
+            let sheet = document.getElementById('glass-actionsheet-overlay');
+            sheet.style.opacity = '0';
+            sheet.querySelector('#glass-actionsheet-modal').style.transform = 'scale(0.95)';
+            setTimeout(() => {
+                sheet.style.display = 'none';
+            }, 300);
+        }
+
+        function triggerUploadNewPhoto() {
+            closeActionSheet();
+            fileInput.click();
+        }
+
+        function triggerCropCurrentPhoto() {
+            closeActionSheet();
+            if (currentImageEl && currentImageEl.src) {
+                openCropperModal(currentImageEl.src);
+            }
+        }
+
+        fileInput.addEventListener('change', function () {
+            if (fileInput.files.length > 0 && currentUploadProdId) {
+                pendingFile = fileInput.files[0];
+                const objectURL = URL.createObjectURL(pendingFile);
+                openCropperModal(objectURL);
+                fileInput.value = ''; 
+            }
+        });
+
+        function openCropperModal(imageURL) {
+            let cropOverlay = document.getElementById('glass-crop-overlay');
+            let cropImg = document.getElementById('cropImageSource');
+            
+            cropImg.src = imageURL;
+            cropOverlay.style.display = 'flex';
+            setTimeout(() => {
+                cropOverlay.style.opacity = '1';
+                cropOverlay.querySelector('#glass-crop-modal').style.transform = 'scale(1)';
+                
+                if (cropper) {
+                    cropper.destroy();
+                }
+                cropper = new Cropper(cropImg, {
+                    aspectRatio: NaN, 
+                    viewMode: 1,
+                    autoCropArea: 0.9,
+                    background: false,
+                    responsive: true,
+                    checkOrientation: false
+                });
+            }, 50);
+        }
+
+        function closeCropModal() {
+            let cropOverlay = document.getElementById('glass-crop-overlay');
+            cropOverlay.style.opacity = '0';
+            cropOverlay.querySelector('#glass-crop-modal').style.transform = 'scale(0.95)';
+            setTimeout(() => {
+                cropOverlay.style.display = 'none';
+                if (cropper) {
+                    cropper.destroy();
+                    cropper = null;
+                }
+                pendingFile = null;
+            }, 300);
+        }
+
+        function saveCroppedImage() {
+            if (!cropper) return;
+            
+            cropper.getCroppedCanvas({
+                maxWidth: 1200,
+                maxHeight: 1200,
+                imageSmoothingQuality: 'high'
+            }).toBlob((blob) => {
+                if (!blob) return;
+                
+                const filename = pendingFile ? pendingFile.name.replace(/\.[^/.]+$/, "") + "_cropped.png" : "cropped_image.png";
+                submitImageUpdate(currentUploadProdId, blob, null, filename);
+                closeCropModal();
+            }, 'image/png');
+        }
+
+        function submitImageUpdate(prodId, file, url, filename = 'image.png') {
+            showToast('Uploading...');
+            let fd = new FormData();
+            fd.append('prod_id', prodId);
+            if (file) fd.append('file', file, filename);
+            if (url) fd.append('image_url', url);
+
+            fetch('/api/update_image', {
+                method: 'POST',
+                body: fd
+            }).then(res => res.json()).then(data => {
+                if (data.success) structChange('Image updated!');
+            });
+        }
+
+        function togglePdfPage(classNameOrId, isChecked) {
+            document.querySelectorAll('.' + classNameOrId + ', #' + classNameOrId).forEach(el => {
+                el.style.display = isChecked ? 'block' : 'none';
+            });
+        }
+
+        function saveCoverText(field, value) {
+            const catalogId = new URLSearchParams(window.location.search).get('catalog_id') || {{ active_catalog_id }};
+            fetch('/api/update_cover', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ catalog_id: catalogId, field: field, value: value })
+            }).then(res => res.json()).then(data => {
+                if (data.success) {
+                    showToast('Saved Cover Info!');
+                }
+            });
+        }
+
+        // Fix print logo
+        window.onbeforeprint = function () {
+            document.querySelectorAll('.logo-top-right:not(#print_logo)').forEach(el => el.style.display = 'none');
+            document.querySelectorAll('#print_logo').forEach(el => el.style.display = 'block');
+        }
+    </script>
+</body>
+
+</html>
